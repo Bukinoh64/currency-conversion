@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#111211">
+  <meta name="description" content="Точный конвертер валют с актуальными курсами и офлайн-режимом.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Тихий обмен — конвертер валют</title>
+  <style>
+:root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      --page: #111211;
+      --panel: #191a18;
+      --field: #20211f;
+      --line: #30312e;
+      --muted: #898a83;
+      --text: #f3f1e9;
+      --yellow: #e8cf76;
+      --green: #9fbd8b;
+      --danger: #e79a8d;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      background:
+        radial-gradient(ellipse at 50% 40%, rgb(47 47 37 / 23%), transparent 58%),
+        var(--page);
+      color: var(--text);
+    }
+
+    button, input { font: inherit; }
+    button { color: inherit; }
+
+    main {
+      width: min(100% - 40px, 478px);
+      margin: 70px auto 64px;
+    }
+
+    .intro { margin-bottom: 36px; }
+
+    .eyebrow {
+      margin: 0 0 13px;
+      color: var(--yellow);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .23em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(29px, 7vw, 39px);
+      font-weight: 550;
+      letter-spacing: -.055em;
+      line-height: 1.12;
+    }
+
+    .subtitle {
+      margin: 12px 0 0;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .18em;
+    }
+
+    .converter { position: relative; }
+
+    .amount-card {
+      position: relative;
+      display: flex;
+      min-height: 106px;
+      padding: 18px 20px;
+      align-items: center;
+      gap: 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: linear-gradient(145deg, #1d1e1b, #191a18);
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .amount-card:focus-within {
+      border-color: #77704b;
+      box-shadow: 0 0 0 3px rgb(232 207 118 / 6%);
+    }
+
+    .amount-entry { min-width: 0; flex: 1; }
+
+    .field-label {
+      display: block;
+      margin-bottom: 10px;
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .16em;
+    }
+
+    .amount-input {
+      width: 100%;
+      padding: 0;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--text);
+      font-size: clamp(23px, 6vw, 29px);
+      font-variant-numeric: tabular-nums;
+      font-weight: 450;
+      letter-spacing: -.04em;
+    }
+
+    .amount-input::placeholder { color: #555650; }
+    .amount-input::-webkit-inner-spin-button,
+    .amount-input::-webkit-outer-spin-button { margin: 0; appearance: none; }
+    .amount-input { appearance: textfield; }
+
+    .currency-trigger {
+      min-width: 107px;
+      height: 48px;
+      padding: 0 11px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      border: 1px solid #373833;
+      border-radius: 9px;
+      background: #232420;
+      cursor: pointer;
+      transition: border-color .18s, background .18s;
+    }
+
+    .currency-trigger:hover, .currency-trigger[aria-expanded="true"] {
+      border-color: #77704b;
+      background: #292a24;
+    }
+
+    .currency-current { display: flex; align-items: center; gap: 8px; }
+    .currency-flag { width: 20px; height: 15px; flex: 0 0 20px; border-radius: 2px; object-fit: cover; }
+    .currency-code { font-size: 12px; font-weight: 700; letter-spacing: .06em; }
+    .chevron { width: 13px; height: 13px; color: var(--muted); transition: transform .18s; }
+    .currency-trigger[aria-expanded="true"] .chevron { transform: rotate(180deg); }
+
+    .swap-wrap {
+      position: relative;
+      z-index: 2;
+      height: 1px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .swap-button {
+      position: absolute;
+      top: -21px;
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border: 1px solid #45453c;
+      border-radius: 50%;
+      background: #25251f;
+      color: var(--yellow);
+      cursor: pointer;
+      transition: background .2s, border-color .2s, transform .35s;
+    }
+
+    .swap-button:hover { transform: rotate(180deg); border-color: var(--yellow); background: #302f25; }
+    .swap-button svg { width: 17px; height: 17px; }
+
+    .rate-card {
+      margin-top: 21px;
+      padding: 17px 19px;
+      border: 1px solid #292a26;
+      border-radius: 10px;
+      background: #171816;
+    }
+
+    .rate-heading {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+    }
+
+    .rate-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: #c9c9c0;
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .rate-line + .rate-line { margin-top: 9px; }
+    .rate-value { color: var(--text); }
+
+    .footer {
+      margin-top: 20px;
+      display: flex;
+      min-height: 38px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .updated-time {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .updated-time svg { width: 15px; height: 15px; }
+    .refresh-group { display: flex; align-items: center; gap: 10px; }
+
+    .refresh-status {
+      max-width: 210px;
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.35;
+      text-align: right;
+    }
+
+    .refresh-status.error { color: var(--danger); }
+    .refresh-status.success { color: var(--green); }
+
+    .refresh-button {
+      height: 36px;
+      padding: 0 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid #4b4734;
+      border-radius: 8px;
+      background: #24231d;
+      color: var(--yellow);
+      font-size: 11px;
+      font-weight: 650;
+      cursor: pointer;
+      transition: background .18s, border-color .18s;
+    }
+
+    .refresh-button:hover { border-color: var(--yellow); background: #2e2c22; }
+    .refresh-button:disabled { cursor: wait; opacity: .7; }
+    .refresh-button svg { width: 14px; height: 14px; }
+    .refresh-button.loading svg { animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .dropdown {
+      position: absolute;
+      z-index: 5;
+      top: calc(100% + 7px);
+      right: 0;
+      width: 220px;
+      padding: 9px;
+      border: 1px solid #373833;
+      border-radius: 11px;
+      background: #20211e;
+      box-shadow: 0 16px 40px rgb(0 0 0 / 48%);
+    }
+
+    .dropdown[hidden] { display: none; }
+
+    .search-input {
+      width: 100%;
+      height: 36px;
+      margin-bottom: 8px;
+      padding: 0 10px;
+      border: 1px solid #393a35;
+      border-radius: 7px;
+      outline: 0;
+      background: #171816;
+      color: var(--text);
+      font-size: 12px;
+    }
+
+    .search-input:focus { border-color: #77704b; }
+    .search-input::placeholder { color: #777870; }
+
+    .currency-list {
+      position: relative;
+      height: 240px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      scrollbar-color: #4c4d45 #20211e;
+      scrollbar-width: thin;
+    }
+
+    .currency-spacer { position: relative; width: 100%; }
+    .currency-option {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 40px;
+      padding: 0 9px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .currency-option:hover, .currency-option:focus-visible { outline: 0; background: #30312a; }
+    .option-flag { width: 20px; height: 15px; flex: 0 0 20px; border-radius: 2px; object-fit: cover; }
+    .option-code { width: 39px; font-size: 11px; font-weight: 700; }
+    .option-name { overflow: hidden; color: #a4a59d; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+    .empty-result { padding: 12px 9px; color: var(--muted); font-size: 12px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; clip-path: inset(50%); }
+
+    @media (max-width: 520px) {
+      main { width: calc(100% - 36px); margin-top: 51px; }
+      .intro { margin-bottom: 28px; }
+      .amount-card { min-height: 95px; padding: 15px 13px; gap: 8px; }
+      .currency-trigger { min-width: 96px; padding: 0 9px; gap: 7px; }
+      .rate-card { padding: 15px 14px; }
+      .refresh-status { max-width: 135px; font-size: 9px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+
+  </style>
+</head>
+<body>
+  <main>
+    <section class="intro" aria-labelledby="page-title">
+      <p class="eyebrow">Обмен без лишнего</p>
+      <h1 id="page-title">ОСОЗНАННЫЙ<br>ОБМЕН</h1>
+      <p class="subtitle">ТОЧНАЯ КОНВЕРТАЦИЯ ВАЛЮТ</p>
+    </section>
+
+    <section class="converter" aria-label="Конвертер валют">
+      <div class="amount-card">
+        <label class="amount-entry" for="amount-from">
+          <span class="field-label">ОТПРАВЛЯЕТЕ</span>
+          <input class="amount-input" id="amount-from" type="number" min="0" step="any" inputmode="decimal" placeholder="0.00" autocomplete="off">
+        </label>
+        <button class="currency-trigger" id="currency-from-button" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Выбрать валюту отправления">
+          <span class="currency-current"><img class="currency-flag" id="flag-from" src="https://flagcdn.com/w40/ru.png" alt=""><span class="currency-code" id="code-from">RUB</span></span>
+          <svg class="chevron" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m4 6 4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="dropdown" id="dropdown-from" hidden>
+          <label class="sr-only" for="search-from">Поиск валюты отправления</label>
+          <input class="search-input" id="search-from" type="search" placeholder="Поиск валюты, например EUR" autocomplete="off">
+          <div class="currency-list" id="list-from" role="listbox" aria-label="Валюты отправления" tabindex="0"><div class="currency-spacer"></div></div>
+        </div>
+      </div>
+
+      <div class="swap-wrap">
+        <button class="swap-button" id="swap-button" type="button" aria-label="Поменять валюты местами">
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 7h10m0 0-3-3m3 3-3 3M15 13H5m0 0 3-3m-3 3 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+
+      <div class="amount-card">
+        <label class="amount-entry" for="amount-to">
+          <span class="field-label">ПОЛУЧАЕТЕ</span>
+          <input class="amount-input" id="amount-to" type="number" min="0" step="any" inputmode="decimal" placeholder="0.00" autocomplete="off">
+        </label>
+        <button class="currency-trigger" id="currency-to-button" type="button" aria-haspopup="listbox" aria-expanded="false" aria-label="Выбрать валюту получения">
+          <span class="currency-current"><img class="currency-flag" id="flag-to" src="https://flagcdn.com/w40/us.png" alt=""><span class="currency-code" id="code-to">USD</span></span>
+          <svg class="chevron" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m4 6 4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="dropdown" id="dropdown-to" hidden>
+          <label class="sr-only" for="search-to">Поиск валюты получения</label>
+          <input class="search-input" id="search-to" type="search" placeholder="Поиск валюты, например EUR" autocomplete="off">
+          <div class="currency-list" id="list-to" role="listbox" aria-label="Валюты получения" tabindex="0"><div class="currency-spacer"></div></div>
+        </div>
+      </div>
+
+      <section class="rate-card" aria-label="Текущий курс">
+        <h2 class="rate-heading">Текущий курс</h2>
+        <div class="rate-line"><span id="rate-forward">Загружаем актуальный курс…</span><span class="rate-value" id="rate-forward-value"></span></div>
+        <div class="rate-line"><span id="rate-reverse">Курс будет обновлён автоматически</span><span class="rate-value" id="rate-reverse-value"></span></div>
+      </section>
+
+      <footer class="footer">
+        <div class="updated-time" aria-label="Текущее время">
+          <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.25"/><path d="M8 4.5V8l2.2 1.4" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/></svg>
+          <time id="current-time"></time>
+        </div>
+        <div class="refresh-group">
+          <span class="refresh-status" id="refresh-status" role="status" aria-live="polite"></span>
+          <button class="refresh-button" id="refresh-button" type="button">
+            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M13.2 7A5.2 5.2 0 0 0 4 3.8L2.8 5m0 0V2.8M2.8 5H5m-2.2 4A5.2 5.2 0 0 0 12 12.2l1.2-1.2m0 0v2.2m0-2.2H11" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>Обновить</span>
+          </button>
+        </div>
+      </footer>
+    </section>
+  </main>
+
+  <script>
+const currencies = [
+  { code: "AED", name: "Дирхам ОАЭ", flag: "ae" },
+  { code: "ARS", name: "Аргентинское песо", flag: "ar" },
+  { code: "AUD", name: "Австралийский доллар", flag: "au" },
+  { code: "BDT", name: "Бангладешская така", flag: "bd" },
+  { code: "BGN", name: "Болгарский лев", flag: "bg" },
+  { code: "BHD", name: "Бахрейнский динар", flag: "bh" },
+  { code: "BRL", name: "Бразильский реал", flag: "br" },
+  { code: "CAD", name: "Канадский доллар", flag: "ca" },
+  { code: "CHF", name: "Швейцарский франк", flag: "ch" },
+  { code: "CLP", name: "Чилийское песо", flag: "cl" },
+  { code: "CNY", name: "Китайский юань", flag: "cn" },
+  { code: "COP", name: "Колумбийское песо", flag: "co" },
+  { code: "CZK", name: "Чешская крона", flag: "cz" },
+  { code: "DKK", name: "Датская крона", flag: "dk" },
+  { code: "EGP", name: "Египетский фунт", flag: "eg" },
+  { code: "EUR", name: "Евро", flag: "eu" },
+  { code: "GBP", name: "Фунт стерлингов", flag: "gb" },
+  { code: "GEL", name: "Грузинский лари", flag: "ge" },
+  { code: "HKD", name: "Гонконгский доллар", flag: "hk" },
+  { code: "HUF", name: "Венгерский форинт", flag: "hu" },
+  { code: "IDR", name: "Индонезийская рупия", flag: "id" },
+  { code: "ILS", name: "Израильский шекель", flag: "il" },
+  { code: "INR", name: "Индийская рупия", flag: "in" },
+  { code: "JPY", name: "Японская иена", flag: "jp" },
+  { code: "KES", name: "Кенийский шиллинг", flag: "ke" },
+  { code: "KRW", name: "Южнокорейская вона", flag: "kr" },
+  { code: "KZT", name: "Казахстанский тенге", flag: "kz" },
+  { code: "MAD", name: "Марокканский дирхам", flag: "ma" },
+  { code: "MXN", name: "Мексиканское песо", flag: "mx" },
+  { code: "MYR", name: "Малайзийский ринггит", flag: "my" },
+  { code: "NGN", name: "Нигерийская найра", flag: "ng" },
+  { code: "NOK", name: "Норвежская крона", flag: "no" },
+  { code: "NZD", name: "Новозеландский доллар", flag: "nz" },
+  { code: "PHP", name: "Филиппинское песо", flag: "ph" },
+  { code: "PKR", name: "Пакистанская рупия", flag: "pk" },
+  { code: "PLN", name: "Польский злотый", flag: "pl" },
+  { code: "QAR", name: "Катарский риал", flag: "qa" },
+  { code: "RON", name: "Румынский лей", flag: "ro" },
+  { code: "RUB", name: "Российский рубль", flag: "ru" },
+  { code: "SAR", name: "Саудовский риял", flag: "sa" },
+  { code: "SEK", name: "Шведская крона", flag: "se" },
+  { code: "SGD", name: "Сингапурский доллар", flag: "sg" },
+  { code: "THB", name: "Тайский бат", flag: "th" },
+  { code: "TRY", name: "Турецкая лира", flag: "tr" },
+  { code: "TWD", name: "Тайваньский доллар", flag: "tw" },
+  { code: "UAH", name: "Украинская гривна", flag: "ua" },
+  { code: "USD", name: "Доллар США", flag: "us" },
+  { code: "VND", name: "Вьетнамский донг", flag: "vn" },
+  { code: "ZAR", name: "Южноафриканский рэнд", flag: "za" }
+];
+
+
+
+const rateStorageKey = "quiet-exchange-rates-v1";
+
+const state = {
+  from: "RUB",
+  to: "USD",
+  rates: null,
+  ratesUpdatedAt: null,
+  lastEdited: "from"
+};
+
+const rowHeight = 40;
+const overscan = 3;
+const fromInput = document.getElementById("amount-from");
+const toInput = document.getElementById("amount-to");
+const status = document.getElementById("refresh-status");
+const refreshButton = document.getElementById("refresh-button");
+
+function currency(code) {
+  return currencies.find((item) => item.code === code);
+}
+
+function rate(from, to) {
+  if (!state.rates || !Number.isFinite(state.rates[from]) || !Number.isFinite(state.rates[to])) {
+    return Number.NaN;
+  }
+  if (from === to) return 1;
+  return state.rates[to] / state.rates[from];
+}
+
+function formatRateDate(date) {
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  }).format(date);
+}
+
+function readCachedRates() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(rateStorageKey));
+    if (!saved || typeof saved.rates !== "object" || !saved.rates) return null;
+
+    const updatedAt = new Date(saved.updatedAt);
+    if (!Number.isFinite(updatedAt.getTime()) || saved.rates.RUB !== 1) return null;
+
+    const rates = { RUB: 1 };
+    for (const item of currencies) {
+      const value = saved.rates[item.code];
+      if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+        rates[item.code] = value;
+      }
+    }
+
+    return Number.isFinite(rates.USD) ? { rates, updatedAt } : null;
+  } catch (error) {
+    console.warn("Не удалось прочитать сохранённые курсы:", error);
+    return null;
+  }
+}
+
+function updateClock() {
+  const now = new Date();
+  const time = document.getElementById("current-time");
+  time.textContent = new Intl.DateTimeFormat("ru-RU", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  }).format(now);
+  time.dateTime = now.toISOString();
+}
+
+function updateAmounts() {
+  const fromValue = Number(fromInput.value);
+  const toValue = Number(toInput.value);
+  const conversionRate = rate(state.from, state.to);
+
+  updateRates();
+  if (!Number.isFinite(conversionRate)) {
+    if (state.lastEdited === "to") {
+      fromInput.value = "";
+    } else {
+      toInput.value = "";
+    }
+    return;
+  }
+
+  if (state.lastEdited === "to" && toInput.value !== "") {
+    fromInput.value = Number.isFinite(toValue) && toValue >= 0
+      ? formatAmount(toValue / conversionRate)
+      : "";
+  } else if (fromInput.value !== "") {
+    toInput.value = Number.isFinite(fromValue) && fromValue >= 0
+      ? formatAmount(fromValue * conversionRate)
+      : "";
+  } else {
+    toInput.value = "";
+  }
+
+}
+
+function formatAmount(value) {
+  if (!Number.isFinite(value)) return "";
+  return String(Number(value.toFixed(8)));
+}
+
+function updateRates() {
+  const forward = rate(state.from, state.to);
+  if (!Number.isFinite(forward)) {
+    document.getElementById("rate-forward").textContent =
+      state.rates ? `Курс ${state.from}/${state.to} недоступен` : "Загружаем актуальный курс…";
+    document.getElementById("rate-reverse").textContent =
+      state.rates ? "Выберите другую валюту" : "Введите сумму после загрузки курса";
+    return;
+  }
+
+  const reverse = 1 / forward;
+  document.getElementById("rate-forward").textContent =
+    `1 ${state.from} = ${forward.toFixed(6)} ${state.to}`;
+  document.getElementById("rate-reverse").textContent =
+    `1 ${state.to} = ${reverse.toFixed(6)} ${state.from}`;
+}
+
+function setCurrency(side, code) {
+  state[side] = code;
+  const item = currency(code);
+  document.getElementById(`code-${side}`).textContent = item.code;
+  document.getElementById(`flag-${side}`).src = `https://flagcdn.com/w40/${item.flag}.png`;
+  closeDropdown(side);
+  updateAmounts();
+}
+
+function openDropdown(side) {
+  const dropdown = document.getElementById(`dropdown-${side}`);
+  const trigger = document.getElementById(`currency-${side}-button`);
+  const otherSide = side === "from" ? "to" : "from";
+  closeDropdown(otherSide);
+  dropdown.hidden = false;
+  trigger.setAttribute("aria-expanded", "true");
+  const search = document.getElementById(`search-${side}`);
+  search.value = "";
+  renderCurrencyList(side);
+  search.focus();
+}
+
+function closeDropdown(side) {
+  document.getElementById(`dropdown-${side}`).hidden = true;
+  document.getElementById(`currency-${side}-button`).setAttribute("aria-expanded", "false");
+}
+
+function renderCurrencyList(side) {
+  const list = document.getElementById(`list-${side}`);
+  const spacer = list.querySelector(".currency-spacer");
+  const query = document.getElementById(`search-${side}`).value.trim().toLocaleLowerCase();
+  const filtered = currencies.filter((item) =>
+    item.code.toLocaleLowerCase().includes(query) ||
+    item.name.toLocaleLowerCase().includes(query)
+  );
+  // Render only visible rows plus a small buffer so long lists stay light on the DOM.
+  const start = Math.max(0, Math.floor(list.scrollTop / rowHeight) - overscan);
+  const end = Math.min(filtered.length, Math.ceil((list.scrollTop + list.clientHeight) / rowHeight) + overscan);
+  spacer.style.height = `${filtered.length * rowHeight}px`;
+  spacer.replaceChildren();
+
+  if (filtered.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "empty-result";
+    empty.textContent = "Валюты не найдены";
+    spacer.append(empty);
+    return;
+  }
+
+  for (let index = start; index < end; index += 1) {
+    const item = filtered[index];
+    const option = document.createElement("button");
+    option.className = "currency-option";
+    option.type = "button";
+    option.setAttribute("role", "option");
+    option.setAttribute("aria-selected", String(item.code === state[side]));
+    option.style.top = `${index * rowHeight}px`;
+    option.innerHTML = `<img class="option-flag" src="https://flagcdn.com/w40/${item.flag}.png" alt="" loading="lazy" decoding="async"><span class="option-code">${item.code}</span><span class="option-name"></span>`;
+    option.querySelector(".option-name").textContent = item.name;
+    option.addEventListener("click", () => setCurrency(side, item.code));
+    spacer.append(option);
+  }
+}
+
+fromInput.addEventListener("input", () => {
+  state.lastEdited = "from";
+  updateAmounts();
+});
+
+toInput.addEventListener("input", () => {
+  state.lastEdited = "to";
+  updateAmounts();
+});
+
+for (const side of ["from", "to"]) {
+  document.getElementById(`currency-${side}-button`).addEventListener("click", () => {
+    const isOpen = document.getElementById(`currency-${side}-button`).getAttribute("aria-expanded") === "true";
+    if (isOpen) closeDropdown(side);
+    else openDropdown(side);
+  });
+
+  document.getElementById(`search-${side}`).addEventListener("input", () => {
+    document.getElementById(`list-${side}`).scrollTop = 0;
+    renderCurrencyList(side);
+  });
+
+  document.getElementById(`list-${side}`).addEventListener("scroll", () => renderCurrencyList(side));
+}
+
+document.getElementById("swap-button").addEventListener("click", () => {
+  const previousFrom = state.from;
+  setCurrency("from", state.to);
+  setCurrency("to", previousFrom);
+  state.lastEdited = state.lastEdited === "from" ? "to" : "from";
+  updateAmounts();
+});
+
+document.addEventListener("click", (event) => {
+  for (const side of ["from", "to"]) {
+    const dropdown = document.getElementById(`dropdown-${side}`);
+    const trigger = document.getElementById(`currency-${side}-button`);
+    if (!dropdown.contains(event.target) && !trigger.contains(event.target)) closeDropdown(side);
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    closeDropdown("from");
+    closeDropdown("to");
+  }
+});
+
+async function refreshRates() {
+  refreshButton.disabled = true;
+  refreshButton.classList.add("loading");
+  status.className = "refresh-status";
+  status.textContent = "Загружаем актуальные курсы…";
+
+  try {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 12_000);
+    let data;
+    try {
+      const response = await fetch("https://open.er-api.com/v6/latest/RUB", {
+        headers: { Accept: "application/json" },
+        cache: "no-store",
+        signal: controller.signal
+      });
+      if (!response.ok) throw new Error(`Сервис курсов ответил: ${response.status}`);
+      data = await response.json();
+    } finally {
+      window.clearTimeout(timeout);
+    }
+
+    const updatedAt = new Date(Number(data.time_last_update_unix) * 1000);
+    if (
+      data.result !== "success" ||
+      data.base_code !== "RUB" ||
+      !data.rates ||
+      typeof data.rates.USD !== "number" ||
+      !Number.isFinite(updatedAt.getTime())
+    ) {
+      throw new Error("Сервис не вернул корректный курс RUB.");
+    }
+
+    const updated = { RUB: 1 };
+    for (const item of currencies) {
+      const value = data.rates[item.code];
+      if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+        updated[item.code] = value;
+      }
+    }
+
+    state.rates = updated;
+    state.ratesUpdatedAt = updatedAt;
+    updateAmounts();
+    try {
+      localStorage.setItem(rateStorageKey, JSON.stringify({
+        rates: updated,
+        updatedAt: updatedAt.toISOString()
+      }));
+    } catch (error) {
+      console.warn("Не удалось сохранить курсы для офлайн-режима:", error);
+    }
+    status.className = "refresh-status success";
+    status.textContent = `Курс на ${formatRateDate(updatedAt)}`;
+  } catch (error) {
+    if (state.rates && state.ratesUpdatedAt) {
+      status.className = "refresh-status error";
+      status.textContent = `Нет связи — курс на ${formatRateDate(state.ratesUpdatedAt)}`;
+    } else {
+      status.className = "refresh-status error";
+      status.textContent = error instanceof Error && error.name === "AbortError"
+        ? "Сервис курсов не ответил вовремя. Проверьте интернет."
+        : error instanceof Error && error.message.startsWith("Сервис курсов ответил:")
+          ? error.message
+          : "Не удалось получить курс. Проверьте интернет и нажмите «Обновить».";
+    }
+  } finally {
+    refreshButton.disabled = false;
+    refreshButton.classList.remove("loading");
+  }
+}
+
+document.getElementById("refresh-button").addEventListener("click", refreshRates);
+
+updateClock();
+window.setInterval(updateClock, 15_000);
+const cachedRates = readCachedRates();
+if (cachedRates) {
+  state.rates = cachedRates.rates;
+  state.ratesUpdatedAt = cachedRates.updatedAt;
+  status.textContent = `Сохранённый курс на ${formatRateDate(cachedRates.updatedAt)}`;
+}
+updateRates();
+refreshRates();
+  </script>
+</body>
+</html>
